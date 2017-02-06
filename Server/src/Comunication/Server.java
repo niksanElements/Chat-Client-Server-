@@ -1,6 +1,8 @@
 package Comunication;
 
 import Comunication.Handlers.MainHandler;
+import Database.AuthorizeController;
+import Database.UsersController;
 import Models.User;
 
 import java.io.IOException;
@@ -26,8 +28,10 @@ public class Server {
 
 	public static void running(ServerSocket listener) {
 		try{
+			AuthorizeController authorizeController = new AuthorizeController();
+			UsersController usersController = new UsersController();
 			while(true){
-				MainHandler hnd = new MainHandler(Server.listener.accept());
+				MainHandler hnd = new MainHandler(Server.listener.accept(),authorizeController,usersController);
 				hnd.start();
 			}
 		} catch (IOException e) {

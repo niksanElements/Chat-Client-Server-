@@ -28,7 +28,12 @@ public class FriendContorller {
     public void addAllFriends(GiveMeAllUsers message){
         if(message != null){
             List<String> result = message.getNames();
-            for(int i = 0;i < result.size();i++){
+            int resultLength = result.size();
+            if(result.size() > 50){
+                resultLength /= 2;
+            }
+            this.model.removeAllElements();
+            for(int i = 0;i < resultLength;i++){
                 this.model.addElement(result.get(i));
             }
         }

@@ -28,29 +28,35 @@ public class AddFriendsHandler{
     private UsersController usersController;
     private User user;
 
-    public AddFriendsHandler(User user){
+    public AddFriendsHandler(User user, UsersController usersController){
         this.user = user;
-        this.usersController = new UsersController();
+        this.usersController = usersController;
     }
 
     public void getAllUsers(GiveMeAllUsers message){
-        message.setNames(this.usersController.getAllUsers(message.getName()));
+        synchronized (this.usersController) {
+            message.setNames(this.usersController.getAllUsers(message.getName()));
+        }
         this.user.write(message);
     }
 
     public void snedInviteFriendShip(AddFriend message){
-        if(this.usersController.inviteFriendShip(this.user.getUsername(),message.getName())){
-            this.user.write(new Success(this.user.getUsername(),"You add friend!"));
-            if(Server.users.containsKey(message.getName())){
-                Server.users.get(message.getName()).write(new AddFriend(this.user.getUsername()));
+        synchronized (this.usersController) {
+            if (this.usersController.inviteFriendShip(this.user.getUsername(), message.getName())) {
+                this.user.write(new Success(this.user.getUsername(), "You add friend!"));
+                if (Server.users.containsKey(message.getName())) {
+                    Server.users.get(message.getName()).write(new AddFriend(this.user.getUsername()));
+                }
+            } else {
+                this.user.write(new Error("Error"));
             }
-        } else{
-            this.user.write(new Error("Error"));
         }
     }
 
     public void getMyFriends(GiveMeMyFriends message){
-        message.setNames(this.usersController.getMyFriends(message.getUsername()));
+        synchronized (this.usersController) {
+            message.setNames(this.usersController.getMyFriends(message.getUsername()));
+        }
         this.user.write(message);
     }
 }

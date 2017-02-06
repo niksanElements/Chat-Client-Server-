@@ -2,6 +2,7 @@ package Comunication.Handlers;
 
 import Comunication.Server;
 import Database.AuthorizeController;
+import Database.UsersController;
 import Message.*;
 import Message.Chat.*;
 import Message.Answer.Error;
@@ -42,11 +43,13 @@ public class MainHandler extends Thread {
      * Initialize the object with user, authorize it and create
      * handler for friends.
      * @param socket
+     * @param authorizeController
+     * @param usersController
      */
-    public MainHandler(Socket socket){
+    public MainHandler(Socket socket, AuthorizeController authorizeController, UsersController usersController){
         ObjectOutputStream out = null;
         ObjectInputStream in = null;
-        this.authorizeController = new AuthorizeController();
+        this.authorizeController = authorizeController;
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
@@ -63,7 +66,7 @@ public class MainHandler extends Thread {
         while(!this.isRunning) {
             this.authorize(in, out);
         }
-        this.addFriendsHandler = new AddFriendsHandler(this.user);
+        this.addFriendsHandler = new AddFriendsHandler(this.user,usersController);
     }
 
     /**
@@ -144,8 +147,10 @@ public class MainHandler extends Thread {
         if(message.getPassword().length() == 0){
             return false;
         }
-        boolean result = this.authorizeController.registration(message.getUsername(),message.getPassword(),message.getFirstName(),message.getLastName());
-        this.authorizeController.close();
+        boolean result = false;
+        synchronized (this.authorizeController) {
+            result = this.authorizeController.registration(message.getUsername(), message.getPassword(), message.getFirstName(), message.getLastName());
+        }
         return result;
     }
 
@@ -157,7 +162,9 @@ public class MainHandler extends Thread {
      */
     public boolean login(Login message) {
         if(message.getUsername().length() != 0 && message.getPassword().length() != 0){
-            return this.authorizeController.login(message.getUsername(),message.getPassword()   );
+            synchronized (this.authorizeController) {
+                return this.authorizeController.login(message.getUsername(), message.getPassword());
+            }
         }
         return false;
     }
@@ -204,7 +211,9 @@ public class MainHandler extends Thread {
                 }
                 case ChatMessage.TYPY:{
                         ChatMessage msg = (ChatMessage)message;
+                    synchronized (Server.users) {
                         Server.users.get(msg.getTo()).write(msg);
+                    }
                     break;
                 }
             }
